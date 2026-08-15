@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+
+scripts/dem_pipeline/raw/
+scripts/dem_pipeline/work/
+scripts/dem_pipeline/.venv/
+__pycache__/
+*.pyc

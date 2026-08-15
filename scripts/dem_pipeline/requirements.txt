@@ -1,0 +1,5 @@
+rasterio>=1.4
+gdal>=3.9
+requests>=2.31
+rio-cogeo>=5.4
+numpy>=1.24
