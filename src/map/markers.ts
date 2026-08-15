@@ -14,3 +14,4 @@ export const repeaterIcon = (): L.DivIcon => dotIcon('#2563eb');
 export const repeaterOutOfCoverageIcon = (): L.DivIcon => dotIcon('#9ca3af');
 export const obstructionIcon = (): L.DivIcon => dotIcon('#dc2626', 16, '&#9888;');
 export const highestPointIcon = (): L.DivIcon => dotIcon('#16a34a', 16, '&#9650;');
+export const relayCandidateIcon = (): L.DivIcon => dotIcon('#9333ea', 20, '&#128225;');

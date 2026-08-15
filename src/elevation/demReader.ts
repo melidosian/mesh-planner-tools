@@ -1,8 +1,14 @@
 import { fromUrl, type GeoTIFFImage } from 'geotiff';
 import type { DemTileMeta, ProfileSample } from '../state/types';
 import type { PathPoint } from '../los/pathSampler';
-import { findTile } from './demIndex';
-import { bilinearInterpolate, lonLatToPixel, type RasterWindow, type TileGeoRef } from './elevationSampler';
+import { findTile, findTilesForBbox } from './demIndex';
+import {
+  bilinearInterpolate,
+  lonLatToPixel,
+  pixelToLonLat,
+  type RasterWindow,
+  type TileGeoRef,
+} from './elevationSampler';
 
 export class DemCoverageError extends Error {
   constructor(lat: number, lon: number) {
@@ -166,4 +172,73 @@ export async function annotateProfileWithElevation(
     lon: p.lon,
     elevationM: filledElevations[i],
   }));
+}
+
+export interface GridPoint {
+  lat: number;
+  lon: number;
+  elevationM: number;
+}
+
+const METERS_PER_DEGREE_LAT = 111_320;
+
+/**
+ * Samples terrain elevation on a roughly-regular grid within a bbox, at
+ * approximately targetSpacingM between samples. Used for scanning an area
+ * (rather than a single path) for high points, e.g. relay-site search.
+ * Reads each intersecting tile's full-resolution window once, then
+ * subsamples in JS with a computed stride -- no extra HTTP requests beyond
+ * one windowed read per tile.
+ */
+export async function sampleElevationGrid(
+  bbox: [number, number, number, number],
+  targetSpacingM: number,
+): Promise<GridPoint[]> {
+  const [minLon, minLat, maxLon, maxLat] = bbox;
+  const tiles = await findTilesForBbox(bbox);
+  const points: GridPoint[] = [];
+
+  for (const tile of tiles) {
+    const handle = await openTile(tile);
+    const { geoRef, noDataValue, image } = handle;
+    const [tMinLon, tMinLat, tMaxLon, tMaxLat] = geoRef.bbox;
+
+    const clampedMinLon = Math.max(minLon, tMinLon);
+    const clampedMaxLon = Math.min(maxLon, tMaxLon);
+    const clampedMinLat = Math.max(minLat, tMinLat);
+    const clampedMaxLat = Math.min(maxLat, tMaxLat);
+    if (clampedMinLon >= clampedMaxLon || clampedMinLat >= clampedMaxLat) continue;
+
+    const topLeft = lonLatToPixel(geoRef, clampedMinLon, clampedMaxLat);
+    const bottomRight = lonLatToPixel(geoRef, clampedMaxLon, clampedMinLat);
+    const x0 = Math.max(0, Math.floor(topLeft.px));
+    const y0 = Math.max(0, Math.floor(topLeft.py));
+    const x1 = Math.min(geoRef.widthPx, Math.ceil(bottomRight.px));
+    const y1 = Math.min(geoRef.heightPx, Math.ceil(bottomRight.py));
+    if (x1 <= x0 || y1 <= y0) continue;
+
+    const rasters = await image.readRasters({ window: [x0, y0, x1, y1] });
+    const band = rasters[0] as ArrayLike<number>;
+    const width = x1 - x0;
+    const height = y1 - y0;
+
+    const pixelWidthDeg = (tMaxLon - tMinLon) / geoRef.widthPx;
+    const pixelHeightDeg = (tMaxLat - tMinLat) / geoRef.heightPx;
+    const midLatRad = (((clampedMinLat + clampedMaxLat) / 2) * Math.PI) / 180;
+    const pixelWidthM = pixelWidthDeg * METERS_PER_DEGREE_LAT * Math.cos(midLatRad);
+    const pixelHeightM = pixelHeightDeg * METERS_PER_DEGREE_LAT;
+    const strideX = Math.max(1, Math.round(targetSpacingM / pixelWidthM));
+    const strideY = Math.max(1, Math.round(targetSpacingM / pixelHeightM));
+
+    for (let py = 0; py < height; py += strideY) {
+      for (let px = 0; px < width; px += strideX) {
+        const value = band[py * width + px];
+        if (noDataValue !== null && value === noDataValue) continue;
+        const { lat, lon } = pixelToLonLat(geoRef, x0 + px, y0 + py);
+        points.push({ lat, lon, elevationM: value });
+      }
+    }
+  }
+
+  return points;
 }

@@ -229,6 +229,17 @@ button {
   font-size: 0.85rem;
 }
 
+.relay-section {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e7e5e4;
+}
+
+.relay-section h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+}
+
 .link-budget-table {
   width: 100%;
   border-collapse: collapse;
