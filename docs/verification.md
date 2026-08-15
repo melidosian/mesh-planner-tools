@@ -71,6 +71,20 @@ DEM reads before deploying.
       candidates whose path would clip outside coverage are skipped rather
       than crashing the whole search.
 
+## Network resilience (a transient DEM fetch failure shouldn't be permanent)
+
+- [ ] In DevTools, add a request-blocking rule for one `dem/tiles/*.tif`
+      request (or use Playwright/CDP route interception), then run an
+      analysis so it hits the blocked tile — confirm the shown error
+      includes real detail (e.g. "Failed to analyze link: ..."), not just
+      "See console for details."
+- [ ] Remove the block and re-run the same analysis (or "Find repeater site
+      nearby") without changing anything else — confirm it now succeeds.
+      Before the fix, a single failed tile fetch permanently broke that
+      tile for the rest of the page session (the cached fetch promise was
+      never evicted on rejection), so this specifically checks that a
+      transient mobile network blip is recoverable by simply retrying.
+
 ## Mobile / narrow-viewport checks
 
 - [ ] At a phone-width viewport (e.g. 375px), confirm the map takes the full

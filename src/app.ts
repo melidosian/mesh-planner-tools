@@ -160,7 +160,8 @@ export class App {
       if (err instanceof DemCoverageError) {
         this.resultsPanel.showError(err.message);
       } else {
-        this.resultsPanel.showError('Failed to analyze link. See console for details.');
+        const detail = err instanceof Error ? err.message : String(err);
+        this.resultsPanel.showError(`Failed to analyze link: ${detail}`);
         console.error(err);
       }
     }
@@ -187,7 +188,8 @@ export class App {
         );
       }
     } catch (err) {
-      this.resultsPanel.showRelayError('Failed to search for a relay site. See console for details.');
+      const detail = err instanceof Error ? err.message : String(err);
+      this.resultsPanel.showRelayError(`Failed to search for a relay site: ${detail}`);
       console.error(err);
     }
   }

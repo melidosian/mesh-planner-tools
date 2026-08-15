@@ -5,12 +5,20 @@ let manifestPromise: Promise<DemManifest> | null = null;
 
 function loadManifest(): Promise<DemManifest> {
   if (!manifestPromise) {
-    manifestPromise = fetch(DEM_MANIFEST_URL).then((res) => {
+    const promise = fetch(DEM_MANIFEST_URL).then((res) => {
       if (!res.ok) {
         throw new Error(`Failed to load DEM manifest: HTTP ${res.status}`);
       }
       return res.json() as Promise<DemManifest>;
     });
+    // Don't let one failed fetch permanently poison the manifest for the
+    // rest of the session -- evict so the next call gets a fresh attempt.
+    promise.catch(() => {
+      if (manifestPromise === promise) {
+        manifestPromise = null;
+      }
+    });
+    manifestPromise = promise;
   }
   return manifestPromise;
 }
