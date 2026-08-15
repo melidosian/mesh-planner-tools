@@ -1,4 +1,5 @@
 import { REPEATER_STORE_KEY } from '../config';
+import { normalizeRepeater } from './normalizeRepeater';
 import { uid } from '../utils/uid';
 import type { ExportedState, Repeater } from './types';
 
@@ -61,7 +62,7 @@ class RepeaterStore {
     try {
       const parsed = JSON.parse(raw) as ExportedState;
       if (parsed.schemaVersion === 1 && Array.isArray(parsed.repeaters)) {
-        this.repeaters = parsed.repeaters;
+        this.repeaters = parsed.repeaters.map(normalizeRepeater);
       }
     } catch {
       // Corrupt localStorage payload — start fresh rather than crash.

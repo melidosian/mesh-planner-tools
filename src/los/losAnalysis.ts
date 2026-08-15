@@ -3,6 +3,7 @@ import { annotateProfileWithElevation } from '../elevation/demReader';
 import type { LinkResult, ObstructionPoint, ProfileSample, Repeater } from '../state/types';
 import { earthCurvatureBulgeM } from './earthCurvature';
 import { fresnelZoneRadiusM } from './fresnel';
+import { computeLinkBudget } from './linkBudget';
 import { sampleGreatCirclePath } from './pathSampler';
 
 function toObstructionPoint(sample: ProfileSample, intrusionM: number): ObstructionPoint {
@@ -103,11 +104,14 @@ export async function analyzeLink(
     frequencyHz,
   );
 
+  const distanceM = profile[profile.length - 1].distanceM;
+  const linkBudget = computeLinkBudget(repeaterA, repeaterB, distanceM, frequencyHz);
+
   return {
     repeaterAId: repeaterA.id,
     repeaterBId: repeaterB.id,
     frequencyHz,
-    distanceM: profile[profile.length - 1].distanceM,
+    distanceM,
     profile,
     antennaTopAM: profile[0].elevationM + repeaterA.antennaHeightM,
     antennaTopBM: profile[profile.length - 1].elevationM + repeaterB.antennaHeightM,
@@ -115,5 +119,6 @@ export async function analyzeLink(
     hardBlocked,
     worstObstruction,
     highestPoint,
+    linkBudget,
   };
 }

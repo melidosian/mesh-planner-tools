@@ -5,6 +5,32 @@ export interface Repeater {
   lon: number;
   /** Antenna height above ground level, in meters. */
   antennaHeightM: number;
+  /** Radio transmit power, in dBm. */
+  txPowerDbm: number;
+  /** Antenna gain, in dBi. */
+  antennaGainDbi: number;
+  /** Feedline/connector loss between radio and antenna, in dB. */
+  cableLossDb: number;
+  /** Receiver sensitivity threshold of the radio at this repeater, in dBm. */
+  rxSensitivityDbm: number;
+}
+
+export interface DirectionalLinkBudget {
+  /** Estimated received power at the far end, in dBm (free-space path loss model). */
+  receivedPowerDbm: number;
+  /** receivedPowerDbm minus the receiving repeater's rxSensitivityDbm; positive means viable. */
+  marginDb: number;
+}
+
+export interface LinkBudget {
+  /** Free-space path loss over the link distance at the analysis frequency, in dB. */
+  pathLossDb: number;
+  /** Budget for repeaterA transmitting to repeaterB. */
+  aToB: DirectionalLinkBudget;
+  /** Budget for repeaterB transmitting to repeaterA. */
+  bToA: DirectionalLinkBudget;
+  /** True only if both directions clear their respective receiver's sensitivity threshold. */
+  viable: boolean;
 }
 
 export interface DemTileMeta {
@@ -54,6 +80,13 @@ export interface LinkResult {
   worstObstruction: ObstructionPoint | null;
   /** Highest terrain elevation anywhere along the path — a candidate relay site. */
   highestPoint: ObstructionPoint;
+  /**
+   * Estimated link budget from each repeater's power/gain/cable-loss/
+   * sensitivity config, using free-space path loss. Most accurate when
+   * `clear` is true — an obstructed path will perform worse than this
+   * predicts, since it doesn't model diffraction/knife-edge loss.
+   */
+  linkBudget: LinkBudget;
 }
 
 export interface ExportedState {

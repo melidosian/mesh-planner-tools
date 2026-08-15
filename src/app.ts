@@ -1,12 +1,22 @@
-import { DEFAULT_ANTENNA_HEIGHT_M, DEFAULT_FREQUENCY_HZ } from './config';
+import {
+  DEFAULT_ANTENNA_GAIN_DBI,
+  DEFAULT_ANTENNA_HEIGHT_M,
+  DEFAULT_CABLE_LOSS_DB,
+  DEFAULT_FREQUENCY_HZ,
+  DEFAULT_RX_SENSITIVITY_DBM,
+  DEFAULT_TX_POWER_DBM,
+} from './config';
 import { findTile } from './elevation/demIndex';
 import { DemCoverageError } from './elevation/demReader';
 import { analyzeLink } from './los/losAnalysis';
 import { MapView } from './map/mapView';
 import { repeaterStore } from './state/repeaterStore';
+import type { Repeater } from './state/types';
 import { ControlPanel } from './ui/controlPanel';
 import { ElevationChart } from './ui/elevationChart';
 import { exportRepeatersToFile, readRepeatersFromFile } from './ui/importExport';
+import { LinkMatrix, type MatrixRow } from './ui/linkMatrix';
+import type { RepeaterFieldValues } from './ui/repeaterFieldsForm';
 import { ResultsPanel } from './ui/resultsPanel';
 
 export class App {
@@ -14,16 +24,23 @@ export class App {
   private controlPanel: ControlPanel;
   private resultsPanel: ResultsPanel;
   private chart: ElevationChart;
+  private linkMatrix: LinkMatrix;
 
   private selectedIds: string[] = [];
   private frequencyHz = DEFAULT_FREQUENCY_HZ;
   private outOfCoverage = new Set<string>();
   private pendingLatLon: { lat: number; lon: number } | null = null;
+  private matrixRows: MatrixRow[] | null = null;
+  private matrixComputing = false;
 
   constructor() {
     this.mapView = new MapView('map');
     this.resultsPanel = new ResultsPanel(document.getElementById('results-panel')!);
     this.chart = new ElevationChart(document.getElementById('elevation-chart') as HTMLCanvasElement);
+    this.linkMatrix = new LinkMatrix(document.getElementById('matrix-panel')!, {
+      onComputeAll: () => void this.runMatrixAnalysis(),
+      onSelectPair: (aId, bId) => this.selectPairAndAnalyze(aId, bId),
+    });
     this.controlPanel = new ControlPanel(document.getElementById('control-panel')!, {
       onAddRepeater: (data) => this.handleAddRepeater(data),
       onUpdateRepeater: (id, patch) => repeaterStore.update(id, patch),
@@ -49,6 +66,7 @@ export class App {
     this.mapView.onMarkerDrag((id, lat, lon) => repeaterStore.update(id, { lat, lon }));
 
     repeaterStore.subscribe(() => {
+      this.matrixRows = null;
       void this.refreshCoverage();
     });
 
@@ -67,7 +85,13 @@ export class App {
     this.render();
   }
 
-  private handleAddRepeater(data: { name: string; antennaHeightM: number }): void {
+  private selectPairAndAnalyze(repeaterAId: string, repeaterBId: string): void {
+    this.selectedIds = [repeaterAId, repeaterBId];
+    this.render();
+    void this.runAnalysis();
+  }
+
+  private handleAddRepeater(data: RepeaterFieldValues): void {
     if (!this.pendingLatLon) return;
     repeaterStore.add({ ...data, lat: this.pendingLatLon.lat, lon: this.pendingLatLon.lon });
     this.pendingLatLon = null;
@@ -123,6 +147,50 @@ export class App {
     }
   }
 
+  private async computeMatrixRow(repeaterA: Repeater, repeaterB: Repeater): Promise<MatrixRow> {
+    try {
+      const result = await analyzeLink(repeaterA, repeaterB, this.frequencyHz);
+      return {
+        repeaterAId: repeaterA.id,
+        repeaterBId: repeaterB.id,
+        status: result.clear ? 'clear' : 'obstructed',
+        distanceKm: result.distanceM / 1000,
+        marginDb: Math.min(result.linkBudget.aToB.marginDb, result.linkBudget.bToA.marginDb),
+      };
+    } catch (err) {
+      return {
+        repeaterAId: repeaterA.id,
+        repeaterBId: repeaterB.id,
+        status: err instanceof DemCoverageError ? 'no-coverage' : 'error',
+      };
+    }
+  }
+
+  private async runMatrixAnalysis(): Promise<void> {
+    const repeaters = repeaterStore.getAll();
+    const pairs: [Repeater, Repeater][] = [];
+    for (let i = 0; i < repeaters.length; i++) {
+      for (let j = i + 1; j < repeaters.length; j++) {
+        pairs.push([repeaters[i], repeaters[j]]);
+      }
+    }
+
+    const rows: MatrixRow[] = pairs.map(([a, b]) => ({ repeaterAId: a.id, repeaterBId: b.id, status: 'pending' }));
+    this.matrixRows = rows;
+    this.matrixComputing = true;
+    this.render();
+
+    for (let k = 0; k < pairs.length; k++) {
+      const [a, b] = pairs[k];
+      rows[k] = await this.computeMatrixRow(a, b);
+      this.matrixRows = rows;
+      this.render();
+    }
+
+    this.matrixComputing = false;
+    this.render();
+  }
+
   private render(): void {
     const repeaters = repeaterStore.getAll();
     this.mapView.syncRepeaters(repeaters, this.outOfCoverage, new Set(this.selectedIds));
@@ -132,7 +200,14 @@ export class App {
       frequencyHz: this.frequencyHz,
       outOfCoverage: this.outOfCoverage,
       pendingLatLon: this.pendingLatLon,
-      defaultAntennaHeightM: DEFAULT_ANTENNA_HEIGHT_M,
+      defaultRepeaterValues: {
+        antennaHeightM: DEFAULT_ANTENNA_HEIGHT_M,
+        txPowerDbm: DEFAULT_TX_POWER_DBM,
+        antennaGainDbi: DEFAULT_ANTENNA_GAIN_DBI,
+        cableLossDb: DEFAULT_CABLE_LOSS_DB,
+        rxSensitivityDbm: DEFAULT_RX_SENSITIVITY_DBM,
+      },
     });
+    this.linkMatrix.render(repeaters, this.matrixRows, this.matrixComputing);
   }
 }

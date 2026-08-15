@@ -13,13 +13,21 @@ data was built.
 
 ## Features
 
-- Click the map to place repeaters (name + antenna height AGL).
+- Click the map to place any number of repeaters, each with its own RF
+  config: antenna height (AGL), TX power, antenna gain, cable loss, and
+  receiver sensitivity. Edit any repeater's config later from the list.
 - Select two repeaters to check line-of-sight, with first Fresnel zone
   clearance (60% rule of thumb) and 4/3-earth-radius curvature/refraction
   correction, at a selectable frequency (900MHz/2.4GHz/3.6GHz/5.8GHz or
   custom).
 - If obstructed, reports both the worst Fresnel-clearance violation and the
   highest terrain point along the path.
+- Estimated link budget (free-space path loss) using each repeater's own
+  power/gain/cable-loss/sensitivity, computed independently in each
+  direction since the two ends' equipment can differ.
+- Network overview: an all-pairs table of LOS status and worst-direction
+  margin across every repeater in the list, click a row to drill into its
+  full map/chart detail.
 - Elevation profile chart (terrain, LOS line, Fresnel clearance floor).
 - Repeater list persists to `localStorage`; JSON export/import for backup.
 

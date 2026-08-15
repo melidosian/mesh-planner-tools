@@ -37,6 +37,20 @@ DEM reads before deploying.
 - [ ] Export repeaters to JSON, reload the page (confirms localStorage
       persistence), then import the exported file into a fresh browser
       profile/incognito window and confirm the repeater list matches.
+- [ ] Add a repeater with custom TX power/antenna gain/cable loss/RX
+      sensitivity; confirm the list shows a summary line matching what was
+      entered. Click "Edit" on an existing repeater, change a value, save,
+      and confirm the summary updates.
+- [ ] Run an analysis and confirm the results panel shows an "Estimated
+      link budget" section with both directions' received power and margin
+      — margins should turn red when negative, green when positive.
+- [ ] With 3+ repeaters, click "Compute all links" in the Network overview
+      panel; confirm a row appears per unique pair with distance/status/
+      worst margin, and that clicking a row re-selects that pair and
+      redraws the map/chart/results for it.
+- [ ] Edit or add/remove a repeater after computing the matrix; confirm the
+      matrix reverts to its "Compute all links" (not-yet-computed) state
+      rather than silently showing stale results.
 
 ## Network behavior (validates the "no full-tile downloads" design goal)
 

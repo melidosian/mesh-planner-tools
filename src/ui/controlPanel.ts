@@ -1,5 +1,6 @@
 import { FREQUENCY_PRESETS } from '../config';
 import type { Repeater } from '../state/types';
+import { buildRepeaterFields, formatRepeaterSummary, readRepeaterFields, type RepeaterFieldValues } from './repeaterFieldsForm';
 
 export interface ControlPanelState {
   repeaters: Repeater[];
@@ -7,12 +8,12 @@ export interface ControlPanelState {
   frequencyHz: number;
   outOfCoverage: ReadonlySet<string>;
   pendingLatLon: { lat: number; lon: number } | null;
-  defaultAntennaHeightM: number;
+  defaultRepeaterValues: Omit<RepeaterFieldValues, 'name'>;
 }
 
 export interface ControlPanelCallbacks {
-  onAddRepeater(data: { name: string; antennaHeightM: number }): void;
-  onUpdateRepeater(id: string, patch: Partial<Pick<Repeater, 'name' | 'antennaHeightM'>>): void;
+  onAddRepeater(data: RepeaterFieldValues): void;
+  onUpdateRepeater(id: string, patch: RepeaterFieldValues): void;
   onDeleteRepeater(id: string): void;
   onToggleSelect(id: string): void;
   onFrequencyChange(hz: number): void;
@@ -23,17 +24,25 @@ export interface ControlPanelCallbacks {
 }
 
 export class ControlPanel {
+  private expandedIds = new Set<string>();
+  private lastState: ControlPanelState | null = null;
+
   constructor(
     private container: HTMLElement,
     private callbacks: ControlPanelCallbacks,
   ) {}
 
   render(state: ControlPanelState): void {
+    this.lastState = state;
     this.container.innerHTML = '';
     this.container.appendChild(this.renderAddForm(state));
     this.container.appendChild(this.renderRepeaterList(state));
     this.container.appendChild(this.renderLinkControls(state));
     this.container.appendChild(this.renderImportExport());
+  }
+
+  private rerender(): void {
+    if (this.lastState) this.render(this.lastState);
   }
 
   private renderAddForm(state: ControlPanelState): HTMLElement {
@@ -61,26 +70,11 @@ export class ControlPanel {
     const form = document.createElement('form');
     form.className = 'repeater-form';
 
-    const nameLabel = document.createElement('label');
-    nameLabel.textContent = 'Name';
-    const nameInput = document.createElement('input');
-    nameInput.name = 'name';
-    nameInput.required = true;
-    nameInput.value = `Repeater ${state.repeaters.length + 1}`;
-    nameLabel.appendChild(nameInput);
-    form.appendChild(nameLabel);
-
-    const heightLabel = document.createElement('label');
-    heightLabel.textContent = 'Antenna height (m AGL)';
-    const heightInput = document.createElement('input');
-    heightInput.name = 'antennaHeightM';
-    heightInput.type = 'number';
-    heightInput.min = '0';
-    heightInput.step = '0.5';
-    heightInput.value = String(state.defaultAntennaHeightM);
-    heightInput.required = true;
-    heightLabel.appendChild(heightInput);
-    form.appendChild(heightLabel);
+    const { rows, inputs } = buildRepeaterFields({
+      name: `Repeater ${state.repeaters.length + 1}`,
+      ...state.defaultRepeaterValues,
+    });
+    for (const row of rows) form.appendChild(row);
 
     const actions = document.createElement('div');
     actions.className = 'form-actions';
@@ -96,10 +90,9 @@ export class ControlPanel {
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const name = nameInput.value.trim();
-      const antennaHeightM = Number(heightInput.value);
-      if (!name || Number.isNaN(antennaHeightM)) return;
-      this.callbacks.onAddRepeater({ name, antennaHeightM });
+      const values = readRepeaterFields(inputs);
+      if (!values) return;
+      this.callbacks.onAddRepeater(values);
     });
 
     wrap.appendChild(form);
@@ -126,44 +119,94 @@ export class ControlPanel {
     list.className = 'repeater-list';
 
     for (const repeater of state.repeaters) {
-      const selected = state.selectedIds.includes(repeater.id);
-      const outOfCoverage = state.outOfCoverage.has(repeater.id);
-
-      const item = document.createElement('li');
-      item.className = `repeater-item${selected ? ' selected' : ''}${outOfCoverage ? ' out-of-coverage' : ''}`;
-
-      const label = document.createElement('button');
-      label.type = 'button';
-      label.className = 'repeater-select';
-      label.textContent = `${repeater.name}${outOfCoverage ? ' (no DEM coverage)' : ''}`;
-      label.addEventListener('click', () => this.callbacks.onToggleSelect(repeater.id));
-      item.appendChild(label);
-
-      const heightInput = document.createElement('input');
-      heightInput.type = 'number';
-      heightInput.min = '0';
-      heightInput.step = '0.5';
-      heightInput.value = String(repeater.antennaHeightM);
-      heightInput.title = 'Antenna height (m AGL)';
-      heightInput.addEventListener('change', () => {
-        const value = Number(heightInput.value);
-        if (!Number.isNaN(value)) this.callbacks.onUpdateRepeater(repeater.id, { antennaHeightM: value });
-      });
-      item.appendChild(heightInput);
-
-      const del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'repeater-delete';
-      del.textContent = '✕';
-      del.title = 'Delete repeater';
-      del.addEventListener('click', () => this.callbacks.onDeleteRepeater(repeater.id));
-      item.appendChild(del);
-
-      list.appendChild(item);
+      list.appendChild(this.renderRepeaterItem(repeater, state));
     }
 
     wrap.appendChild(list);
     return wrap;
+  }
+
+  private renderRepeaterItem(repeater: Repeater, state: ControlPanelState): HTMLElement {
+    const selected = state.selectedIds.includes(repeater.id);
+    const outOfCoverage = state.outOfCoverage.has(repeater.id);
+    const expanded = this.expandedIds.has(repeater.id);
+
+    const item = document.createElement('li');
+    item.className = `repeater-item${selected ? ' selected' : ''}${outOfCoverage ? ' out-of-coverage' : ''}`;
+
+    const header = document.createElement('div');
+    header.className = 'repeater-item-header';
+
+    const body = document.createElement('div');
+    body.className = 'repeater-item-body';
+
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.className = 'repeater-select';
+    label.textContent = `${repeater.name}${outOfCoverage ? ' (no DEM coverage)' : ''}`;
+    label.addEventListener('click', () => this.callbacks.onToggleSelect(repeater.id));
+    body.appendChild(label);
+
+    const summary = document.createElement('p');
+    summary.className = 'repeater-summary';
+    summary.textContent = formatRepeaterSummary(repeater);
+    body.appendChild(summary);
+
+    header.appendChild(body);
+
+    const editToggle = document.createElement('button');
+    editToggle.type = 'button';
+    editToggle.className = 'repeater-edit-toggle';
+    editToggle.textContent = expanded ? 'Done' : 'Edit';
+    editToggle.addEventListener('click', () => {
+      if (expanded) this.expandedIds.delete(repeater.id);
+      else this.expandedIds.add(repeater.id);
+      this.rerender();
+    });
+    header.appendChild(editToggle);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'repeater-delete';
+    del.textContent = '✕';
+    del.title = 'Delete repeater';
+    del.addEventListener('click', () => this.callbacks.onDeleteRepeater(repeater.id));
+    header.appendChild(del);
+
+    item.appendChild(header);
+
+    if (expanded) {
+      item.appendChild(this.renderEditForm(repeater));
+    }
+
+    return item;
+  }
+
+  private renderEditForm(repeater: Repeater): HTMLElement {
+    const form = document.createElement('form');
+    form.className = 'repeater-edit-form';
+
+    const { rows, inputs } = buildRepeaterFields(repeater);
+    for (const row of rows) form.appendChild(row);
+
+    const actions = document.createElement('div');
+    actions.className = 'form-actions';
+    const save = document.createElement('button');
+    save.type = 'submit';
+    save.textContent = 'Save';
+    actions.appendChild(save);
+    form.appendChild(actions);
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const values = readRepeaterFields(inputs);
+      if (!values) return;
+      this.callbacks.onUpdateRepeater(repeater.id, values);
+      this.expandedIds.delete(repeater.id);
+      this.rerender();
+    });
+
+    return form;
   }
 
   private renderLinkControls(state: ControlPanelState): HTMLElement {

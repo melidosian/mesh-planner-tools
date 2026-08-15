@@ -20,6 +20,18 @@ export const FRESNEL_CLEARANCE_FRACTION = 0.6;
 /** Default antenna height above ground level for new repeaters, in meters. */
 export const DEFAULT_ANTENNA_HEIGHT_M = 10;
 
+/** Default radio transmit power for new repeaters, in dBm (~100mW). */
+export const DEFAULT_TX_POWER_DBM = 20;
+
+/** Default antenna gain for new repeaters, in dBi (typical panel/sector antenna). */
+export const DEFAULT_ANTENNA_GAIN_DBI = 8;
+
+/** Default feedline/connector loss for new repeaters, in dB. */
+export const DEFAULT_CABLE_LOSS_DB = 1;
+
+/** Default receiver sensitivity for new repeaters, in dBm (typical 802.11 low-MCS sensitivity). */
+export const DEFAULT_RX_SENSITIVITY_DBM = -89;
+
 /** Target spacing between path samples, in meters (matches DEM resolution). */
 export const SAMPLE_SPACING_TARGET_M = 30;
 
