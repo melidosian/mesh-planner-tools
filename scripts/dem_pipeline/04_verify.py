@@ -110,7 +110,12 @@ def check_global_max(manifest: dict) -> None:
 
     value, lat, lon, tile_id = best
     print(f"  Global max elevation in dataset: {value:.1f}m at {lat:.4f},{lon:.4f} (tile {tile_id})")
-    print("  Expect this near Timms Hill (45.4509, -90.1954, ~594.8m) -- WI's highest point.")
+    print(
+        "  Note: the tile grid is a simple bbox over Wisconsin (not clipped to the state"
+        " border), so edge tiles pull in neighboring terrain -- e.g. Minnesota's North Shore"
+        " Highlands can outrank Timms Hill (45.4509, -90.1954, ~594.8m) here. That's expected;"
+        " the landmark checks above are the real correctness signal."
+    )
 
 
 def main() -> None:
