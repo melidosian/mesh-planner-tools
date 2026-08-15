@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mesh Repeater LOS Planner</title>
+  </head>
+  <body>
+    <div id="app">
+      <header id="app-header">
+        <h1>Mesh Repeater LOS Planner</h1>
+        <p id="app-subtitle">Wisconsin line-of-sight planning for mesh radio repeaters</p>
+      </header>
+      <main id="app-main">
+        <div id="map"></div>
+        <aside id="side-panel">
+          <div id="control-panel"></div>
+          <div id="results-panel"></div>
+        </aside>
+      </main>
+      <div id="chart-panel">
+        <canvas id="elevation-chart"></canvas>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
