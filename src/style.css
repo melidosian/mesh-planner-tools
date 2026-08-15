@@ -20,9 +20,17 @@ body {
 }
 
 #app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.75rem 1.25rem;
   background: #1c1917;
   color: #fff;
+}
+
+.header-title {
+  min-width: 0;
 }
 
 #app-header h1 {
@@ -36,15 +44,35 @@ body {
   color: #d6d3d1;
 }
 
+#panel-toggle {
+  display: none;
+  flex-shrink: 0;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid #57534e;
+  background: #292524;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
 #app-main {
   display: flex;
   flex: 1;
   min-height: 60vh;
+  position: relative;
 }
 
 #map {
   flex: 1;
   min-height: 60vh;
+}
+
+#panel-backdrop {
+  display: none;
+}
+
+#panel-close {
+  display: none;
 }
 
 #side-panel {
@@ -313,4 +341,91 @@ button {
 #matrix-panel h2 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* Mobile: side panel becomes a hideable off-canvas drawer instead of
+   squeezing the map into a sliver next to a fixed 320px column. */
+@media (max-width: 860px) {
+  #panel-toggle {
+    display: inline-block;
+  }
+
+  #map {
+    min-height: 70vh;
+  }
+
+  #panel-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1500;
+  }
+
+  #side-panel {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(88vw, 340px);
+    max-height: 100vh;
+    height: 100vh;
+    border-left: none;
+    box-shadow: -6px 0 20px rgba(0, 0, 0, 0.3);
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 1600;
+  }
+
+  #panel-close {
+    display: block;
+    align-self: flex-end;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    background: none;
+    border: none;
+    font-size: 0.95rem;
+  }
+
+  body.panel-open #panel-backdrop {
+    display: block;
+  }
+
+  body.panel-open #side-panel {
+    transform: translateX(0);
+  }
+
+  #chart-panel,
+  #matrix-panel {
+    padding: 0.6rem 0.85rem;
+  }
+
+  #chart-panel {
+    height: 200px;
+  }
+
+  /* Comfortable tap targets on touch screens. */
+  button,
+  input,
+  select {
+    min-height: 2.5rem;
+    font-size: 1rem;
+  }
+
+  .repeater-delete,
+  .repeater-edit-toggle {
+    min-height: 2.25rem;
+  }
+
+  .link-budget-table th,
+  .link-budget-table td,
+  .link-matrix-table th,
+  .link-matrix-table td {
+    padding: 0.45rem 0.6rem;
+  }
 }

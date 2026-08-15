@@ -52,6 +52,24 @@ DEM reads before deploying.
       matrix reverts to its "Compute all links" (not-yet-computed) state
       rather than silently showing stale results.
 
+## Mobile / narrow-viewport checks
+
+- [ ] At a phone-width viewport (e.g. 375px), confirm the map takes the full
+      width by default and the repeater panel is hidden, not squeezed in
+      alongside it.
+- [ ] Tap the "☰ Repeaters" button — the panel should slide in as an
+      overlay with a dimmed backdrop; tapping the backdrop or "✕ Close"
+      should slide it back out.
+- [ ] Tap the map to add a repeater — the panel should auto-open showing
+      the new-repeater form (it's otherwise hidden, so this is required for
+      the flow to make sense on mobile).
+- [ ] Compute the all-pairs matrix, then tap a row — the panel should
+      auto-open showing that pair's result.
+- [ ] Confirm no horizontal scrolling anywhere on the page, including with
+      the link budget table and the network overview table (they should
+      scroll horizontally within their own container if needed, not widen
+      the page).
+
 ## Network behavior (validates the "no full-tile downloads" design goal)
 
 - [ ] Open DevTools → Network tab, filter to `.tif`. Run one LOS analysis.

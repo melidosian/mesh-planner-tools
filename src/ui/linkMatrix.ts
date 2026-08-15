@@ -78,6 +78,10 @@ export class LinkMatrix {
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    return table;
+
+    const scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
+    scroll.appendChild(table);
+    return scroll;
   }
 }

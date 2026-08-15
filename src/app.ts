@@ -32,6 +32,7 @@ export class App {
   private pendingLatLon: { lat: number; lon: number } | null = null;
   private matrixRows: MatrixRow[] | null = null;
   private matrixComputing = false;
+  private panelOpen = false;
 
   constructor() {
     this.mapView = new MapView('map');
@@ -60,10 +61,15 @@ export class App {
 
     this.mapView.onMapClick((lat, lon) => {
       this.pendingLatLon = { lat, lon };
+      this.setPanelOpen(true);
       this.render();
     });
     this.mapView.onMarkerClick((id) => this.toggleSelect(id));
     this.mapView.onMarkerDrag((id, lat, lon) => repeaterStore.update(id, { lat, lon }));
+
+    document.getElementById('panel-toggle')!.addEventListener('click', () => this.togglePanel());
+    document.getElementById('panel-close')!.addEventListener('click', () => this.setPanelOpen(false));
+    document.getElementById('panel-backdrop')!.addEventListener('click', () => this.setPanelOpen(false));
 
     repeaterStore.subscribe(() => {
       this.matrixRows = null;
@@ -72,6 +78,15 @@ export class App {
 
     void this.refreshCoverage();
     this.render();
+  }
+
+  private togglePanel(): void {
+    this.setPanelOpen(!this.panelOpen);
+  }
+
+  private setPanelOpen(open: boolean): void {
+    this.panelOpen = open;
+    document.body.classList.toggle('panel-open', open);
   }
 
   private toggleSelect(id: string): void {
@@ -87,6 +102,7 @@ export class App {
 
   private selectPairAndAnalyze(repeaterAId: string, repeaterBId: string): void {
     this.selectedIds = [repeaterAId, repeaterBId];
+    this.setPanelOpen(true);
     this.render();
     void this.runAnalysis();
   }
