@@ -1,6 +1,12 @@
 import L from 'leaflet';
 import type { ObstructionPoint, ProfileSample, Repeater } from '../state/types';
-import { highestPointIcon, obstructionIcon, repeaterIcon, repeaterOutOfCoverageIcon } from './markers';
+import {
+  highestPointIcon,
+  obstructionIcon,
+  relayCandidateIcon,
+  repeaterIcon,
+  repeaterOutOfCoverageIcon,
+} from './markers';
 
 // Rough geographic center of Wisconsin.
 const WI_CENTER: L.LatLngTuple = [44.6, -89.7];
@@ -15,6 +21,8 @@ export class MapView {
   private repeaterMarkers = new Map<string, L.Marker>();
   private pathLine: L.Polyline | null = null;
   private resultMarkers: L.Marker[] = [];
+  private relayLines: L.Polyline[] = [];
+  private relayMarker: L.Marker | null = null;
 
   private mapClickHandler: MapClickHandler | null = null;
   private markerDragHandler: MarkerDragHandler | null = null;
@@ -107,5 +115,43 @@ export class MapView {
     }
     for (const marker of this.resultMarkers) marker.remove();
     this.resultMarkers = [];
+    this.clearRelayCandidate();
+  }
+
+  showRelayCandidate(
+    candidate: { lat: number; lon: number; elevationM: number },
+    legAProfile: ProfileSample[],
+    legBProfile: ProfileSample[],
+    legAClear: boolean,
+    legBClear: boolean,
+  ): void {
+    this.clearRelayCandidate();
+
+    const legAColor = legAClear ? '#16a34a' : '#dc2626';
+    const legBColor = legBClear ? '#16a34a' : '#dc2626';
+    const legALine = L.polyline(
+      legAProfile.map((p) => [p.lat, p.lon]),
+      { color: legAColor, weight: 3, dashArray: '2 8' },
+    ).addTo(this.map);
+    const legBLine = L.polyline(
+      legBProfile.map((p) => [p.lat, p.lon]),
+      { color: legBColor, weight: 3, dashArray: '2 8' },
+    ).addTo(this.map);
+    this.relayLines = [legALine, legBLine];
+
+    this.relayMarker = L.marker([candidate.lat, candidate.lon], { icon: relayCandidateIcon() }).addTo(this.map);
+    this.relayMarker.bindTooltip(`Candidate relay: ${candidate.elevationM.toFixed(0)}m elevation`);
+
+    const bounds = legALine.getBounds().extend(legBLine.getBounds());
+    this.map.fitBounds(bounds.pad(0.2));
+  }
+
+  clearRelayCandidate(): void {
+    for (const line of this.relayLines) line.remove();
+    this.relayLines = [];
+    if (this.relayMarker) {
+      this.relayMarker.remove();
+      this.relayMarker = null;
+    }
   }
 }

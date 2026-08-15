@@ -22,6 +22,9 @@ data was built.
   custom).
 - If obstructed, reports both the worst Fresnel-clearance violation and the
   highest terrain point along the path.
+- "Find repeater site nearby" searches a corridor around the direct path
+  for a high point that would give clear LOS to both ends — a candidate
+  relay site, not just the highest point on the direct line.
 - Estimated link budget (free-space path loss) using each repeater's own
   power/gain/cable-loss/sensitivity, computed independently in each
   direction since the two ends' equipment can differ.

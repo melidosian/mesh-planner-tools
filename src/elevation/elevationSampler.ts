@@ -26,6 +26,22 @@ export function lonLatToPixel(geoRef: TileGeoRef, lon: number, lat: number): Pix
   };
 }
 
+export interface LonLat {
+  lat: number;
+  lon: number;
+}
+
+/** Inverse of lonLatToPixel: full-tile pixel coordinates to lon/lat. */
+export function pixelToLonLat(geoRef: TileGeoRef, px: number, py: number): LonLat {
+  const [minLon, minLat, maxLon, maxLat] = geoRef.bbox;
+  const pixelWidthDeg = (maxLon - minLon) / geoRef.widthPx;
+  const pixelHeightDeg = (maxLat - minLat) / geoRef.heightPx;
+  return {
+    lon: minLon + px * pixelWidthDeg,
+    lat: maxLat - py * pixelHeightDeg,
+  };
+}
+
 export interface RasterWindow {
   /** Pixel x/y of this window's top-left corner, in the full tile's raster space. */
   originPx: number;

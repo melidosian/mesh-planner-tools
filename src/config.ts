@@ -56,3 +56,31 @@ export const DEFAULT_FREQUENCY_HZ = 2.4e9;
 export const DEM_MANIFEST_URL = `${import.meta.env.BASE_URL}dem/manifest.json`;
 
 export const REPEATER_STORE_KEY = 'mesh-planner:repeaters:v1';
+
+/** How far off the direct A-B line to search for a relay site, in meters. */
+export const RELAY_SEARCH_CORRIDOR_HALF_WIDTH_M = 10_000;
+
+/** Grid spacing for the relay-site elevation scan, in meters. */
+export const RELAY_SEARCH_GRID_SPACING_M = 100;
+
+/** Minimum separation between candidate relay sites (avoids re-testing the same hill). */
+export const RELAY_MIN_CANDIDATE_SPACING_M = 800;
+
+/**
+ * Max allowed (distance A-candidate + distance candidate-B) / (direct A-B
+ * distance). Keeps candidates genuinely "on the way" -- without this, a
+ * tall hill far past one endpoint can have near-zero perpendicular offset
+ * from the extended bearing and look deceptively close to the line.
+ */
+export const RELAY_MAX_DETOUR_RATIO = 1.4;
+
+/** Cap on how many candidate sites get a full two-leg LOS check. */
+export const RELAY_MAX_CANDIDATES_TO_TEST = 12;
+
+/**
+ * Assumed antenna height for a not-yet-built candidate relay site, in
+ * meters. Taller than the general default antenna height since a purpose-
+ * built relay site more realistically gets a proper mast/tower, not just a
+ * rooftop mount.
+ */
+export const DEFAULT_RELAY_ANTENNA_HEIGHT_M = 20;

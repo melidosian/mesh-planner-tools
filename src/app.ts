@@ -9,6 +9,7 @@ import {
 import { findTile } from './elevation/demIndex';
 import { DemCoverageError } from './elevation/demReader';
 import { analyzeLink } from './los/losAnalysis';
+import { findRelayCandidate } from './los/relaySearch';
 import { MapView } from './map/mapView';
 import { repeaterStore } from './state/repeaterStore';
 import type { Repeater } from './state/types';
@@ -36,7 +37,9 @@ export class App {
 
   constructor() {
     this.mapView = new MapView('map');
-    this.resultsPanel = new ResultsPanel(document.getElementById('results-panel')!);
+    this.resultsPanel = new ResultsPanel(document.getElementById('results-panel')!, {
+      onFindRelay: () => void this.handleFindRelay(),
+    });
     this.chart = new ElevationChart(document.getElementById('elevation-chart') as HTMLCanvasElement);
     this.linkMatrix = new LinkMatrix(document.getElementById('matrix-panel')!, {
       onComputeAll: () => void this.runMatrixAnalysis(),
@@ -160,6 +163,32 @@ export class App {
         this.resultsPanel.showError('Failed to analyze link. See console for details.');
         console.error(err);
       }
+    }
+  }
+
+  private async handleFindRelay(): Promise<void> {
+    if (this.selectedIds.length !== 2) return;
+    const [aId, bId] = this.selectedIds;
+    const repeaterA = repeaterStore.getById(aId);
+    const repeaterB = repeaterStore.getById(bId);
+    if (!repeaterA || !repeaterB) return;
+
+    this.resultsPanel.showRelaySearching();
+    try {
+      const search = await findRelayCandidate(repeaterA, repeaterB, this.frequencyHz);
+      this.resultsPanel.showRelayResult(search, repeaterA, repeaterB);
+      if (search.candidate) {
+        this.mapView.showRelayCandidate(
+          search.candidate,
+          search.candidate.legA.profile,
+          search.candidate.legB.profile,
+          search.candidate.legA.clear,
+          search.candidate.legB.clear,
+        );
+      }
+    } catch (err) {
+      this.resultsPanel.showRelayError('Failed to search for a relay site. See console for details.');
+      console.error(err);
     }
   }
 

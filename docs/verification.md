@@ -52,6 +52,25 @@ DEM reads before deploying.
       matrix reverts to its "Compute all links" (not-yet-computed) state
       rather than silently showing stale results.
 
+## Relay site search
+
+- [ ] Add repeaters at Elkhorn, WI (42.6728, -88.5403) and East Troy, WI
+      (42.80, -88.40), analyze — expect **Obstructed** (this reproduces a
+      known real-world blocked link). Click "Find repeater site nearby".
+- [ ] Confirm it finds a candidate near Alpine Valley Resort
+      (~42.736, -88.428) with both legs **Clear**, and that the map shows
+      the original obstructed path plus a dashed two-leg path through a
+      purple relay marker.
+- [ ] Confirm "Find repeater site nearby" only appears when the direct link
+      is obstructed, not when it's clear.
+- [ ] Try it on a pair with no clear site nearby (e.g. two points separated
+      by a wide lake or valley with nothing tall around) — confirm it
+      reports "best nearby candidate, still not fully clear" rather than
+      falsely claiming success, and doesn't hang or error.
+- [ ] Try it with a repeater near the edge of DEM coverage — confirm
+      candidates whose path would clip outside coverage are skipped rather
+      than crashing the whole search.
+
 ## Mobile / narrow-viewport checks
 
 - [ ] At a phone-width viewport (e.g. 375px), confirm the map takes the full
