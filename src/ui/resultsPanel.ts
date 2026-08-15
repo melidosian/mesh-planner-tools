@@ -110,7 +110,11 @@ export class ResultsPanel {
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    wrap.appendChild(table);
+
+    const scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
+    scroll.appendChild(table);
+    wrap.appendChild(scroll);
 
     return wrap;
   }

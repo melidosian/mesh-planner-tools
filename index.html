@@ -8,12 +8,17 @@
   <body>
     <div id="app">
       <header id="app-header">
-        <h1>Mesh Repeater LOS Planner</h1>
-        <p id="app-subtitle">Wisconsin line-of-sight planning for mesh radio repeaters</p>
+        <div class="header-title">
+          <h1>Mesh Repeater LOS Planner</h1>
+          <p id="app-subtitle">Wisconsin line-of-sight planning for mesh radio repeaters</p>
+        </div>
+        <button id="panel-toggle" type="button" aria-label="Toggle repeater panel">☰ Repeaters</button>
       </header>
       <main id="app-main">
         <div id="map"></div>
+        <div id="panel-backdrop"></div>
         <aside id="side-panel">
+          <button id="panel-close" type="button" aria-label="Close panel">✕ Close</button>
           <div id="control-panel"></div>
           <div id="results-panel"></div>
         </aside>
