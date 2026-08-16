@@ -46,6 +46,15 @@ async function openTile(tile: DemTileMeta): Promise<TileHandle> {
         noDataValue: noDataRaw === null || noDataRaw === undefined ? null : Number(noDataRaw),
       };
     })();
+    // Don't let one failed fetch (common on flaky mobile networks)
+    // permanently poison this tile for the rest of the session -- evict
+    // so the next read gets a fresh attempt. The identity check guards
+    // against a newer promise having already replaced this entry.
+    handlePromise.catch(() => {
+      if (tileHandleCache.get(tile.id) === handlePromise) {
+        tileHandleCache.delete(tile.id);
+      }
+    });
     tileHandleCache.set(tile.id, handlePromise);
   }
   return handlePromise;
